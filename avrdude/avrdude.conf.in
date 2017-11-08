@@ -55,6 +55,7 @@
 #       has_jtag         = <yes/no> ;             # part has JTAG i/f
 #       has_debugwire    = <yes/no> ;             # part has debugWire i/f
 #       has_pdi          = <yes/no> ;             # part has PDI i/f
+#       has_updi         = <yes/no> ;             # part has UPDI i/f
 #       has_tpi          = <yes/no> ;             # part has TPI i/f
 #       devicecode       = <num> ;            # deprecated, use stk500_devcode
 #       stk500_devcode   = <num> ;                # numeric
@@ -1105,6 +1106,14 @@ programmer
 ;
 
 programmer
+  id    = "xplainedpro_updi";
+  desc  = "Atmel AVR XplainedPro in UPDI mode";
+  type  = "jtagice3_updi";
+  connection_type = usb;
+  usbpid = 0x2111;
+;
+
+programmer
   id    = "xplainedmini";
   desc  = "Atmel AVR XplainedMini in ISP mode";
   type  = "jtagice3_isp";
@@ -1132,6 +1141,14 @@ programmer
   id    = "atmelice_pdi";
   desc  = "Atmel-ICE (ARM/AVR) in PDI mode";
   type  = "jtagice3_pdi";
+  connection_type = usb;
+  usbpid = 0x2141;
+;
+
+programmer
+  id    = "atmelice_updi";
+  desc  = "Atmel-ICE (ARM/AVR) in UPDI mode";
+  type  = "jtagice3_updi";
   connection_type = usb;
   usbpid = 0x2141;
 ;
@@ -14989,4 +15006,88 @@ part
     ;
 ;
 
+#------------------------------------------------------------
+# AVR8X family common values
+#------------------------------------------------------------
+
+part
+    id		= ".avr8x";
+    desc	= "AVR8X family common values";
+    has_updi	= yes;
+    nvm_base	= 0x01c0;
+    mcu_base	= 0x0090;
+
+    memory "signature"
+        size		= 3;
+        offset		= 0x1000090;
+    ;
+
+    memory "prodsig"
+        size		= 0x3D;
+        offset		= 0x8e0200;
+        page_size	= 0x3D;
+        readsize	= 0x3D;
+    ;
+
+    memory "fuse1"
+        size		= 1;
+        offset		= 0x8f0021;
+    ;
+
+    memory "fuse2"
+        size		= 1;
+        offset		= 0x8f0022;
+    ;
+
+    memory "fuse4"
+        size		= 1;
+        offset		= 0x8f0024;
+    ;
+
+    memory "fuse5"
+        size		= 1;
+        offset		= 0x8f0025;
+    ;
+
+    memory "lock"
+        size		= 1;
+        offset		= 0x8f0027;
+    ;
+
+    memory "data"
+        # SRAM, only used to supply the offset
+        offset		= 0x1000000;
+    ;
+;
+
+#------------------------------------------------------------
+# ATtiny1617
+#------------------------------------------------------------
+
+part parent ".avr8x"
+    id		= "tn1617";
+    desc	= "ATtiny1617";
+    signature	= 0x1e 0x94 0x20;
+
+    memory "eeprom"
+        size		= 0x0100;
+        offset		= 0x08c0000;
+        page_size	= 0x20;
+        readsize	= 0x100;
+    ;
+
+    memory "flash"
+        size		= 0x4000;
+        offset		= 0x0800000;
+        page_size	= 0x40;
+        readsize	= 0x100;
+    ;
+
+    memory "usersig"
+        size        = 0x20;
+        offset      = 0x8e0400;
+        page_size   = 0x20;
+        readsize	= 0x100;
+    ;
+;
 
