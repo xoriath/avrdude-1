@@ -183,6 +183,7 @@ static int pin_name;
 %token K_HAS_JTAG		/* MCU has JTAG i/f. */
 %token K_HAS_DW			/* MCU has debugWire i/f. */
 %token K_HAS_PDI                /* MCU has PDI i/f rather than ISP (ATxmega). */
+%token K_HAS_UPDI               /* MCU has UPDI i/f (AVR8X). */
 %token K_HAS_TPI                /* MCU has TPI i/f rather than ISP (ATtiny4/5/9/10). */
 %token K_IDR			/* address of OCD register in IO space */
 %token K_IS_AT90S1200		/* chip is an AT90S1200 (needs special treatment) */
@@ -1058,6 +1059,16 @@ part_parm :
         current_part->flags |= AVRPART_HAS_PDI;
       else if ($3->primary == K_NO)
         current_part->flags &= ~AVRPART_HAS_PDI;
+
+      free_token($3);
+    } |
+
+  K_HAS_UPDI TKN_EQUAL yesno
+    {
+      if ($3->primary == K_YES)
+        current_part->flags |= AVRPART_HAS_UPDI;
+      else if ($3->primary == K_NO)
+        current_part->flags &= ~AVRPART_HAS_UPDI;
 
       free_token($3);
     } |

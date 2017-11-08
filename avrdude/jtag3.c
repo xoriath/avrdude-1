@@ -84,6 +84,7 @@ struct pdata
 #define PGM_FL_IS_PDI           (0x0002)
 #define PGM_FL_IS_JTAG          (0x0004)
 #define PGM_FL_IS_EDBG          (0x0008)
+#define PGM_FL_IS_UPDI          (0x0010)
 
 static int jtag3_open(PROGRAMMER * pgm, char * port);
 static int jtag3_edbg_prepare(PROGRAMMER * pgm);
@@ -1014,6 +1015,10 @@ static int jtag3_initialize(PROGRAMMER * pgm, AVRPART * p)
     ifname = "PDI";
     if (p->flags & AVRPART_HAS_PDI)
       conn = PARM3_CONN_PDI;
+  } else if (pgm->flag & PGM_FL_IS_UPDI) {
+    ifname = "UPDI";
+    if (p->flags & AVRPART_HAS_UPDI)
+      conn = PARM3_CONN_UPDI;
   } else {
     ifname = "JTAG";
     if (p->flags & AVRPART_HAS_JTAG)
@@ -1028,6 +1033,8 @@ static int jtag3_initialize(PROGRAMMER * pgm, AVRPART * p)
 
   if (p->flags & AVRPART_HAS_PDI)
     parm[0] = PARM3_ARCH_XMEGA;
+  else if (p->flags & AVRPART_HAS_UPDI)
+    parm[0] = PARM3_ARCH_UPDI;
   else if (p->flags & AVRPART_HAS_DW)
     parm[0] = PARM3_ARCH_TINY;
   else
@@ -1043,7 +1050,7 @@ static int jtag3_initialize(PROGRAMMER * pgm, AVRPART * p)
   if (jtag3_setparm(pgm, SCOPE_AVR, 1, PARM3_CONNECTION, parm, 1) < 0)
     return -1;
 
-  if (conn == PARM3_CONN_PDI)
+  if (conn == PARM3_CONN_PDI || conn == PARM3_CONN_UPDI)
     PDATA(pgm)->set_sck = jtag3_set_sck_xmega_pdi;
   else if (conn == PARM3_CONN_JTAG) {
     if (p->flags & AVRPART_HAS_PDI)
@@ -1076,6 +1083,50 @@ static int jtag3_initialize(PROGRAMMER * pgm, AVRPART * p)
 
   /* set device descriptor data */
   if ((p->flags & AVRPART_HAS_PDI))
+  {
+    struct xmega_device_desc xd;
+    LNODEID ln;
+    AVRMEM * m;
+
+    u16_to_b2(xd.nvm_base_addr, p->nvm_base);
+    u16_to_b2(xd.mcu_base_addr, p->mcu_base);
+
+    for (ln = lfirst(p->mem); ln; ln = lnext(ln)) {
+      m = ldata(ln);
+      if (strcmp(m->desc, "flash") == 0) {
+	if (m->readsize != 0 && m->readsize < m->page_size)
+	  PDATA(pgm)->flash_pagesize = m->readsize;
+	else
+	  PDATA(pgm)->flash_pagesize = m->page_size;
+	u16_to_b2(xd.flash_page_size, m->page_size);
+      } else if (strcmp(m->desc, "eeprom") == 0) {
+	PDATA(pgm)->eeprom_pagesize = m->page_size;
+	xd.eeprom_page_size = m->page_size;
+	u16_to_b2(xd.eeprom_size, m->size);
+	u32_to_b4(xd.nvm_eeprom_offset, m->offset);
+      } else if (strcmp(m->desc, "application") == 0) {
+	u32_to_b4(xd.app_size, m->size);
+	u32_to_b4(xd.nvm_app_offset, m->offset);
+      } else if (strcmp(m->desc, "boot") == 0) {
+	u16_to_b2(xd.boot_size, m->size);
+	u32_to_b4(xd.nvm_boot_offset, m->offset);
+      } else if (strcmp(m->desc, "fuse1") == 0) {
+	u32_to_b4(xd.nvm_fuse_offset, m->offset & ~7);
+      } else if (strncmp(m->desc, "lock", 4) == 0) {
+	u32_to_b4(xd.nvm_lock_offset, m->offset);
+      } else if (strcmp(m->desc, "usersig") == 0) {
+	u32_to_b4(xd.nvm_user_sig_offset, m->offset);
+      } else if (strcmp(m->desc, "prodsig") == 0) {
+	u32_to_b4(xd.nvm_prod_sig_offset, m->offset);
+      } else if (strcmp(m->desc, "data") == 0) {
+	u32_to_b4(xd.nvm_data_offset, m->offset);
+      }
+    }
+
+    if (jtag3_setparm(pgm, SCOPE_AVR, 2, PARM3_DEVICEDESC, (unsigned char *)&xd, sizeof xd) < 0)
+      return -1;
+  }
+  else if ((p->flags & AVRPART_HAS_UPDI))
   {
     struct xmega_device_desc xd;
     LNODEID ln;
@@ -1443,6 +1494,18 @@ static int jtag3_open_pdi(PROGRAMMER * pgm, char * port)
   return 0;
 }
 
+static int jtag3_open_updi(PROGRAMMER * pgm, char * port)
+{
+  avrdude_message(MSG_NOTICE2, "%s: jtag3_open_updi()\n", progname);
+
+  if (jtag3_open_common(pgm, port) < 0)
+    return -1;
+
+  if (jtag3_getsync(pgm, PARM3_CONN_UPDI) < 0)
+    return -1;
+
+  return 0;
+}
 
 void jtag3_close(PROGRAMMER * pgm)
 {
@@ -2282,5 +2345,39 @@ void jtag3_pdi_initpgm(PROGRAMMER * pgm)
   pgm->teardown       = jtag3_teardown;
   pgm->page_size      = 256;
   pgm->flag           = PGM_FL_IS_PDI;
+}
+
+const char jtag3_updi_desc[] = "Atmel JTAGICE3 in UPDI mode";
+
+void jtag3_updi_initpgm(PROGRAMMER * pgm)
+{
+  strcpy(pgm->type, "JTAGICE3_UPDI");
+
+  /*
+   * mandatory functions
+   */
+  pgm->initialize     = jtag3_initialize;
+  pgm->display        = jtag3_display;
+  pgm->enable         = jtag3_enable;
+  pgm->disable        = jtag3_disable;
+  pgm->program_enable = jtag3_program_enable_dummy;
+  pgm->chip_erase     = jtag3_chip_erase;
+  pgm->open           = jtag3_open_updi;
+  pgm->close          = jtag3_close;
+  pgm->read_byte      = jtag3_read_byte;
+  pgm->write_byte     = jtag3_write_byte;
+
+  /*
+   * optional functions
+   */
+  pgm->paged_write    = jtag3_paged_write;
+  pgm->paged_load     = jtag3_paged_load;
+  pgm->page_erase     = jtag3_page_erase;
+  pgm->print_parms    = jtag3_print_parms;
+  pgm->set_sck_period = jtag3_set_sck_period;
+  pgm->setup          = jtag3_setup;
+  pgm->teardown       = jtag3_teardown;
+  pgm->page_size      = 256;
+  pgm->flag           = PGM_FL_IS_UPDI;
 }
 

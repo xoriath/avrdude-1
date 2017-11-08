@@ -151,6 +151,7 @@ flash_instr      { yylval=NULL; return K_FLASH_INSTR; }
 has_debugwire    { yylval=NULL; return K_HAS_DW; }
 has_jtag         { yylval=NULL; return K_HAS_JTAG; }
 has_pdi          { yylval=NULL; return K_HAS_PDI; }
+has_updi         { yylval=NULL; return K_HAS_UPDI; }
 has_tpi          { yylval=NULL; return K_HAS_TPI; }
 hventerstabdelay { yylval=NULL; return K_HVENTERSTABDELAY; }
 hvleavestabdelay { yylval=NULL; return K_HVLEAVESTABDELAY; }
