@@ -1842,7 +1842,7 @@ static int jtag3_read_byte(PROGRAMMER * pgm, AVRPART * p, AVRMEM * mem,
      * harm for other connection types either.
      */
     u32_to_b4(cmd + 8, 3);
-    u32_to_b4(cmd + 4, 0);
+    u32_to_b4(cmd + 4, mem->offset);
 
     if (addr == 0) {
       if ((status = jtag3_command(pgm, cmd, 12, &resp, "read memory")) < 0)
