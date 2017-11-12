@@ -15091,3 +15091,33 @@ part parent ".avr8x"
     ;
 ;
 
+#------------------------------------------------------------
+# ATtiny817
+#------------------------------------------------------------
+
+part parent ".avr8x"
+    id		= "tn817";
+    desc	= "ATtiny817";
+    signature	= 0x1e 0x93 0x20;
+
+    memory "eeprom"
+        size		= 0x0100;
+        offset		= 0x08c0000;
+        page_size	= 0x20;
+        readsize	= 0x100;
+    ;
+
+    memory "flash"
+        size		= 0x2000;
+        offset		= 0x0800000;
+        page_size	= 0x40;
+        readsize	= 0x100;
+    ;
+
+    memory "usersig"
+        size        = 0x20;
+        offset      = 0x8e0400;
+        page_size   = 0x20;
+        readsize	= 0x100;
+    ;
+;
