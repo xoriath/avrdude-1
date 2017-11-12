@@ -1128,44 +1128,45 @@ static int jtag3_initialize(PROGRAMMER * pgm, AVRPART * p)
   }
   else if ((p->flags & AVRPART_HAS_UPDI))
   {
-    struct xmega_device_desc xd;
+    struct updi_device_desc xd;
     LNODEID ln;
-    AVRMEM * m;
+    AVRMEM *m;
 
     u16_to_b2(xd.nvm_base_addr, p->nvm_base);
     u16_to_b2(xd.mcu_base_addr, p->mcu_base);
 
-    for (ln = lfirst(p->mem); ln; ln = lnext(ln)) {
+    for (ln = lfirst(p->mem); ln; ln = lnext(ln))
+    {
       m = ldata(ln);
-      if (strcmp(m->desc, "flash") == 0) {
-	if (m->readsize != 0 && m->readsize < m->page_size)
-	  PDATA(pgm)->flash_pagesize = m->readsize;
-	else
-	  PDATA(pgm)->flash_pagesize = m->page_size;
-	u16_to_b2(xd.flash_page_size, m->page_size);
-      } else if (strcmp(m->desc, "eeprom") == 0) {
-	PDATA(pgm)->eeprom_pagesize = m->page_size;
-	xd.eeprom_page_size = m->page_size;
-	u16_to_b2(xd.eeprom_size, m->size);
-	u32_to_b4(xd.nvm_eeprom_offset, m->offset);
-      } else if (strcmp(m->desc, "application") == 0) {
-	u32_to_b4(xd.app_size, m->size);
-	u32_to_b4(xd.nvm_app_offset, m->offset);
-      } else if (strcmp(m->desc, "boot") == 0) {
-	u16_to_b2(xd.boot_size, m->size);
-	u32_to_b4(xd.nvm_boot_offset, m->offset);
-      } else if (strcmp(m->desc, "fuse1") == 0) {
-	u32_to_b4(xd.nvm_fuse_offset, m->offset & ~7);
-      } else if (strncmp(m->desc, "lock", 4) == 0) {
-	u32_to_b4(xd.nvm_lock_offset, m->offset);
-      } else if (strcmp(m->desc, "usersig") == 0) {
-	u32_to_b4(xd.nvm_user_sig_offset, m->offset);
-      } else if (strcmp(m->desc, "prodsig") == 0) {
-	u32_to_b4(xd.nvm_prod_sig_offset, m->offset);
-      } else if (strcmp(m->desc, "data") == 0) {
-	u32_to_b4(xd.nvm_data_offset, m->offset);
+      if (strcmp(m->desc, "flash") == 0)
+      {
+        if (m->readsize != 0 && m->readsize < m->page_size)
+          PDATA(pgm)->flash_pagesize = m->readsize;
+        else
+          PDATA(pgm)->flash_pagesize = m->page_size;
+        xd.flash_page_size = m->page_size;
+      }
+      else if (strcmp(m->desc, "eeprom") == 0)
+      {
+        PDATA(pgm)->eeprom_pagesize = m->page_size;
+        xd.eeprom_page_size = m->page_size;
       }
     }
+    
+    xd.prog_base[1] = 0x80;
+    xd.prog_base[0] = 0;
+
+    avrdude_message(MSG_NOTICE2, "UPDI SET: \n\t"
+      "xd->prog_base=%x %x\n\t"
+      "xd->flash_page_size=%x\n\t"
+      "xd->eeprom_page_size=%x\n\t"      
+      "xd->nvmctrl=%x %x\n\t"
+      "xd->ocd=%x %x\n",
+      xd.prog_base[0], xd.prog_base[1],
+      xd.flash_page_size,
+      xd.eeprom_page_size,
+      xd.nvm_base_addr[0], xd.nvm_base_addr[1], 
+      xd.mcu_base_addr[0], xd.mcu_base_addr[1]);
 
     if (jtag3_setparm(pgm, SCOPE_AVR, 2, PARM3_DEVICEDESC, (unsigned char *)&xd, sizeof xd) < 0)
       return -1;

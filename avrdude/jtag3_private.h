@@ -320,4 +320,13 @@ struct xmega_device_desc {
     unsigned char nvm_base_addr[2];	// IO space base address of NVM controller
     unsigned char mcu_base_addr[2];	// IO space base address of MCU control
 };
+
+/* UPDI device descriptor */
+struct updi_device_desc {
+    unsigned char prog_base[2];
+    unsigned char flash_page_size;
+    unsigned char eeprom_page_size;
+    unsigned char nvm_base_addr[2];
+    unsigned char mcu_base_addr[2];
+};
 #endif /* JTAG3_PRIVATE_EXPORTED */
