@@ -1780,7 +1780,7 @@ static int jtag3_read_byte(PROGRAMMER * pgm, AVRPART * p, AVRMEM * mem,
   cmd[1] = CMD3_READ_MEMORY;
   cmd[2] = 0;
 
-  cmd[3] = ( p->flags & AVRPART_HAS_PDI ) ? MTYPE_FLASH : MTYPE_FLASH_PAGE;
+  cmd[3] = ( p->flags & AVRPART_HAS_PDI || p->flags & AVRPART_HAS_PDI ) ? MTYPE_FLASH : MTYPE_FLASH_PAGE;
   if (strcmp(mem->desc, "flash") == 0 ||
       strcmp(mem->desc, "application") == 0 ||
       strcmp(mem->desc, "apptable") == 0 ||
@@ -1791,7 +1791,7 @@ static int jtag3_read_byte(PROGRAMMER * pgm, AVRPART * p, AVRMEM * mem,
     paddr_ptr = &PDATA(pgm)->flash_pageaddr;
     cache_ptr = PDATA(pgm)->flash_pagecache;
   } else if (strcmp(mem->desc, "eeprom") == 0) {
-    if ( (pgm->flag & PGM_FL_IS_DW) || ( p->flags & AVRPART_HAS_PDI ) ) {
+    if ( (pgm->flag & PGM_FL_IS_DW) || ( p->flags & AVRPART_HAS_PDI ) || ( p->flags & AVRPART_HAS_PDI ) ) {
       cmd[3] = MTYPE_EEPROM;
     } else {
       cmd[3] = MTYPE_EEPROM_PAGE;
@@ -1931,7 +1931,7 @@ static int jtag3_write_byte(PROGRAMMER * pgm, AVRPART * p, AVRMEM * mem,
   cmd[0] = SCOPE_AVR;
   cmd[1] = CMD3_WRITE_MEMORY;
   cmd[2] = 0;
-  cmd[3] = ( p->flags & AVRPART_HAS_PDI ) ? MTYPE_FLASH : MTYPE_SPM;
+  cmd[3] = ( p->flags & AVRPART_HAS_PDI || p->flags & AVRPART_HAS_PDI ) ? MTYPE_FLASH : MTYPE_SPM;
   if (strcmp(mem->desc, "flash") == 0) {
      cache_ptr = PDATA(pgm)->flash_pagecache;
      pagesize = PDATA(pgm)->flash_pagesize;
